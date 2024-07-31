@@ -89,6 +89,7 @@ public class UniformGrid : Grid
         int i = 0;
 
         if (newValue == null) return;
+        if (oldValue == newValue) return;
 
         foreach (var item in newValue)
         {

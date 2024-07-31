@@ -19,6 +19,8 @@
                 HeightRequest="50"
                 JustifyContent="SpaceBetween">
                 <Label FontSize="18" Text="{Binding StrDisplayYearMonth}" />
+                <Label FontSize="18" Text="{Binding PreviousPosition}" />
+                <Label FontSize="18" Text="{Binding ListOfMonth.Count}" />
                 <HorizontalStackLayout>
                     <Button
                         BackgroundColor="Transparent"
@@ -108,46 +110,83 @@
             BackgroundColor="Gray"
             HeightRequest="0.5" />
 
-        <CarouselView
-            ItemsSource="{Binding ListOfMonth}"
-            Position="{Binding CurrentPosition, Mode=OneTime}"
-            PositionChangedCommand="{Binding CurrentPositionChangedCommand}"
-            PositionChangedCommandParameter="{Binding Source={RelativeSource Self}, Path=Position}">
-            <CarouselView.ItemTemplate>
+        <!--<CarouselView
+        ItemsSource="{Binding ListOfMonth}"
+        Position="{Binding CurrentPosition, Mode=TwoWay}"
+        PositionChangedCommand="{Binding CurrentPositionChangedCommand}"
+        PositionChangedCommandParameter="{Binding Source={RelativeSource Self}, Path=Position}">
+        <CarouselView.ItemTemplate>
+        <DataTemplate>
+        <userControls:UniformGrid
+        ItemsSource="{Binding}"
+        RowSpacing="10"
+        UniformColumn="7"
+        UniformRow="8">
+        <userControls:UniformGrid.ItemDataTemplate>
+        <DataTemplate>
+        <Frame
+        Padding="0"
+        BorderColor="{Binding DayItemBorderColor}"
+        CornerRadius="45"
+        HeightRequest="48"
+        WidthRequest="48">
+        <VerticalStackLayout VerticalOptions="Center">
+        <Label
+        FontSize="10"
+        HorizontalTextAlignment="Center"
+        Text="{Binding SolarDay, StringFormat='{0:yy/MM/dd}'}"
+        TextColor="{Binding DayItemTextColor}"
+        VerticalTextAlignment="Start" />
+        <Label
+        FontSize="12"
+        HorizontalTextAlignment="Center"
+        Text="{Binding LunarDay.LunarDay}"
+        TextColor="{Binding DayItemTextColor}"
+        VerticalTextAlignment="End" />
+        </VerticalStackLayout>
+        </Frame>
+        </DataTemplate>
+        </userControls:UniformGrid.ItemDataTemplate>
+        </userControls:UniformGrid>
+        </DataTemplate>
+        </CarouselView.ItemTemplate>
+        </CarouselView>-->
+
+        <userControls:UniformGrid
+            ItemsSource="{Binding MonthItems}"
+            RowSpacing="10"
+            UniformColumn="7"
+            UniformRow="8">
+            <userControls:UniformGrid.ItemDataTemplate>
                 <DataTemplate>
-                    <userControls:UniformGrid
-                        ItemsSource="{Binding}"
-                        RowSpacing="10"
-                        UniformColumn="7"
-                        UniformRow="8">
-                        <userControls:UniformGrid.ItemDataTemplate>
-                            <DataTemplate>
-                                <Frame
-                                    Padding="0"
-                                    BorderColor="{Binding DayItemBorderColor}"
-                                    CornerRadius="45"
-                                    HeightRequest="48"
-                                    WidthRequest="48">
-                                    <VerticalStackLayout VerticalOptions="Center">
-                                        <Label
-                                            FontSize="16"
-                                            HorizontalTextAlignment="Center"
-                                            Text="{Binding SolarDay.Day}"
-                                            TextColor="{Binding DayItemTextColor}"
-                                            VerticalTextAlignment="Start" />
-                                        <Label
-                                            FontSize="12"
-                                            HorizontalTextAlignment="Center"
-                                            Text="{Binding LunarDay.LunarDay}"
-                                            TextColor="{Binding DayItemTextColor}"
-                                            VerticalTextAlignment="End" />
-                                    </VerticalStackLayout>
-                                </Frame>
-                            </DataTemplate>
-                        </userControls:UniformGrid.ItemDataTemplate>
-                    </userControls:UniformGrid>
+                    <Frame
+                        Padding="0"
+                        BorderColor="{Binding DayItemBorderColor}"
+                        CornerRadius="45"
+                        HeightRequest="48"
+                        WidthRequest="48">
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label
+                                FontSize="15"
+                                HorizontalTextAlignment="Center"
+                                Text="{Binding SolarDay.Day}"
+                                TextColor="{Binding DayItemTextColor}"
+                                VerticalTextAlignment="Start" />
+                            <Label
+                                FontSize="12"
+                                HorizontalTextAlignment="Center"
+                                Text="{Binding LunarDay.LunarDay}"
+                                TextColor="{Binding DayItemTextColor}"
+                                VerticalTextAlignment="End" />
+                        </VerticalStackLayout>
+                    </Frame>
                 </DataTemplate>
-            </CarouselView.ItemTemplate>
-        </CarouselView>
+            </userControls:UniformGrid.ItemDataTemplate>
+        </userControls:UniformGrid>
+
+        <HorizontalStackLayout Spacing="15" HorizontalOptions="Center">
+            <Button Text="Prev" Command="{Binding PrevMonthCommand}"/>
+            <Button Text="Next" Command="{Binding NextMonthCommand}"/>
+        </HorizontalStackLayout>
     </VerticalStackLayout>
 </ContentPage>

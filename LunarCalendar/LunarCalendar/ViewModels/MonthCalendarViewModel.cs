@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -21,28 +22,33 @@ namespace LunarCalendar.ViewModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public ObservableCollection<ObservableCollection<DayItem>> ListOfMonth { get; set; }
+        const int BUFFER_SIZE = 3;
+
+        public ObservableCollection<ObservableCollection<DayItem>> ListOfMonth { get; set; }        
+        public ObservableCollection<DayItem> MonthItems { get; set; }
         public int CurrentPosition { get; set; }
-        private int PreviousPosition { get; set; }
+        public int PreviousPosition { get; set; }
         public int DisplayMonth { get; set; }
         public int DisplayYear { get; set; }
         public DateTime DisplayYearMonth { get; set; }
+        public ICommand NextMonthCommand { get; set; }
+        public ICommand PrevMonthCommand { get; set; }
         public string StrDisplayYearMonth
         {
             get { return string.Format("Tháng {0} - {1}", DisplayYearMonth.Month.ToString(), DisplayYearMonth.Year.ToString()); }
         }
 
         public MonthCalendarViewModel() {
-            //DisplayMonth = DateTime.Now.Month;
-            //DisplayYear = DateTime.Now.Year;
             DisplayYearMonth = DateTime.Now;
             Task.Run(()=> { LoadData(); });
 
+            NextMonthCommand = new Command(NextMonth);
+            PrevMonthCommand = new Command(PrevMonth);
         }
 
         void AddMonthData(int month, int year, bool isInsert = false)
         {
-            var monthItem = new ObservableCollection<DayItem>();
+            MonthItems = new ObservableCollection<DayItem>();
 
             var beginMonthDayOfWeek = (int)new DateTime(year, month, 1).DayOfWeek;
             var endMonthDayOfWeek = (int)new DateTime(year, month, 1).AddMonths(1).AddDays(-1).DayOfWeek;
@@ -52,81 +58,72 @@ namespace LunarCalendar.ViewModels
 
             for (var date = beginDate; date <= endDate; date = date.AddDays(1))
             {
-                monthItem.Add(new DayItem
+                MonthItems.Add(new DayItem
                 {
                     CurrentMonth = month,
                     SolarDay = date,
                     LunarDay = LunarCalendarCalc.GetInstance().ConvertSolarToLunar(date, 7),
+                    //LunarDay = GetLunarDate(date),
                     IsSelected = date.Date == DateTime.Now.Date
                 });
             }
-            if (isInsert)
-                ListOfMonth.Insert(0, monthItem);
-            else
-                ListOfMonth.Add(monthItem);
+
+            OnPropertyChanged(nameof(MonthItems));
+
+            //monthItem.Add(new DayItem
+            //{
+            //    CurrentMonth = month,
+            //    SolarDay = beginDate,
+            //    //LunarDay = LunarCalendarCalc.GetInstance().ConvertSolarToLunar(date, 7),
+            //    IsSelected = beginDate.Date == DateTime.Now.Date
+            //});
+
+            //if (isInsert)
+            //    ListOfMonth.Insert(0, monthItem);
+            //else
+            //    ListOfMonth.Add(monthItem);
         }
 
         public void LoadData()
         {
-            ListOfMonth = new ObservableCollection<ObservableCollection<DayItem>>();
-            for (int i = -12; i <= 12; i++)
-            {
-                //var month = DisplayMonth + i;
-                //var year = DisplayYear;
-                //if (month > 12) { year++; month = 1; }
-                //if (month < 1) { year--; month = 12; }
+            //ListOfMonth = new ObservableCollection<ObservableCollection<DayItem>>();
+            //for (int i = -(BUFFER_SIZE * 2); i <= (BUFFER_SIZE * 2); i++)
+            //{
+            //    var yearMonth = DisplayYearMonth.AddMonths(i);
 
-                var yearMonth = DisplayYearMonth.AddMonths(i);
+            //    AddMonthData(yearMonth.Month, yearMonth.Year);
+            //}
+            //CurrentPosition = (BUFFER_SIZE * 2);
+            //PreviousPosition = (BUFFER_SIZE * 2);
 
-                AddMonthData(yearMonth.Month, yearMonth.Year);
-            }
-            CurrentPosition = 12;
-            PreviousPosition = 12;
+            AddMonthData(DisplayYearMonth.Month, DisplayYearMonth.Year);
 
             OnPropertyChanged(nameof(CurrentPosition));
             OnPropertyChanged("DisplayMonth");
             OnPropertyChanged("DisplayYear");
             OnPropertyChanged("ListOfMonth");
             OnPropertyChanged("DisplayYearMonth");
+            OnPropertyChanged("PreviousPosition");
+            OnPropertyChanged("StrDisplayYearMonth");
         }
 
         public void NextMonth()
         {
-            //DisplayMonth++;
-            //if (DisplayMonth > 12)
-            //{
-            //    DisplayMonth = 1;
-            //    DisplayYear++;
-            //}
-
             DisplayYearMonth = DisplayYearMonth.AddMonths(1);
+            LoadData();
         }
 
         public void PrevMonth()
         {
-            //DisplayMonth--;
-            //if (DisplayMonth < 1)
-            //{
-            //    DisplayMonth = 12;
-            //    DisplayMonth--;
-            //}
-
             DisplayYearMonth = DisplayYearMonth.AddMonths(-1);
+            LoadData();
         }
-        public ICommand CurrentPositionChangedCommand => new Command<int>((p) =>
+        public ICommand CurrentPositionChangedCommand => new Command<int>(async (p) =>
         {
             //On next month
             if (PreviousPosition < p)
             {
                 NextMonth();
-                //if (CurrentPosition == ListOfMonth.Count - 1)
-                //{
-                //    var month = DisplayMonth + 1;
-                //    var year = DisplayYear;
-                //    if (month > 12) { year++; month = 1; }
-
-                //    AddMonthData(month, year);
-                //}
                 PreviousPosition = p;
             }
 
@@ -134,22 +131,62 @@ namespace LunarCalendar.ViewModels
             if (PreviousPosition > p)
             {
                 PrevMonth();
-                //if (CurrentPosition == 0)
-                //{
-                //    var month = DisplayMonth - 1;
-                //    var year = DisplayYear;
-                //    if (month < 1) { year--; month = 12; }
-
-                //    AddMonthData(month, year, true);
-                ////}
-                //if (CurrentPosition == 0) CurrentPosition = 1;
                 PreviousPosition = p;
+            }
+
+            if (p > ListOfMonth.Count - BUFFER_SIZE)
+            {
+                await FetchMoreMonth(ListOfMonth.Last().First().SolarDay, false);
+            }
+
+            if (p < BUFFER_SIZE)
+            {
+                await FetchMoreMonth(ListOfMonth.First().First().SolarDay, true);
             }
 
             OnPropertyChanged("DisplayMonth");
             OnPropertyChanged("DisplayYear");
             OnPropertyChanged("ListOfMonth");
             OnPropertyChanged("StrDisplayYearMonth");
+            OnPropertyChanged("PreviousPosition");
         });
+
+        async Task FetchMoreMonth(DateTime beginYearMonth, bool isDirectionPrev)
+        {
+            await Task.Run(() =>
+            {
+                for (int i = 1; i <= BUFFER_SIZE; i++)
+                {
+                    var yearMonth = beginYearMonth.AddMonths(i);
+
+                    AddMonthData(yearMonth.Month, yearMonth.Year, isDirectionPrev);
+                }
+            });
+        }
+
+        DateTime DuongSangAm(DateTime ngayDuong)
+        {
+            // Lấy lịch âm của Việt Nam
+            var lichAmVN = new CultureInfo("vi-VN");
+
+            // Tạo một Calendar sử dụng lịch âm của Việt Nam
+            var calendar = lichAmVN.DateTimeFormat.Calendar;
+
+            // Chuyển đổi ngày dương lịch sang ngày âm lịch
+            return calendar.ToDateTime(ngayDuong.Year, ngayDuong.Month, ngayDuong.Day, 0, 0, 0, 0);
+        }
+
+        LunarDate GetLunarDate(DateTime ngayDuong)
+        {
+            var date = DuongSangAm(ngayDuong);
+
+            return new LunarDate
+            {
+                LunarDay = date.Day,
+                LunarMonth = date.Month,
+                LunarYear = date.Year,
+                IsLeapMonth = false
+            };
+        }
     }
 }
